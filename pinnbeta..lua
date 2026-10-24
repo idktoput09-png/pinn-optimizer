@@ -1,5 +1,14 @@
 
--- BRAINROT CARPET ANIMATION + REMOVE AURA
+-- PINN BRAINROT CARPET ANIMATION + REMOVE AURA
+-- LOCAL OPTIMIZER
+
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- STOP VERSI LAMA
+_G.PINN_V11_STOP = false
+
 local function isCarpetBrainrot(obj)
     local current = obj
 
@@ -19,7 +28,9 @@ local function isCarpetBrainrot(obj)
 end
 
 local function removeAuraEffects(obj)
-    if _G.PINN_V11_STOP or not obj then return end
+    if _G.PINN_V11_STOP or not obj then
+        return
+    end
 
     pcall(function()
         if obj:IsA("ParticleEmitter")
@@ -27,25 +38,24 @@ local function removeAuraEffects(obj)
             or obj:IsA("Beam")
             or obj:IsA("PointLight")
             or obj:IsA("SpotLight")
-            or obj:IsA("SurfaceLight") then
-
-            obj.Enabled = false
-
-        elseif obj:IsA("Highlight") then
+            or obj:IsA("SurfaceLight")
+            or obj:IsA("Highlight") then
             obj.Enabled = false
         end
     end)
 end
 
-local function stopCarpetBrainrotAnimation(obj)
-    if _G.PINN_V11_STOP or not obj:IsA("Animator") then
+local function stopCarpetBrainrotAnimation(animator)
+    if _G.PINN_V11_STOP
+        or not animator:IsA("Animator") then
         return
     end
 
-    local humanoid = obj.Parent
+    local humanoid = animator.Parent
     local character = humanoid and humanoid.Parent
 
-    if not character or character == LocalPlayer.Character then
+    if not character
+        or character == LocalPlayer.Character then
         return
     end
 
@@ -54,37 +64,59 @@ local function stopCarpetBrainrotAnimation(obj)
     end
 
     pcall(function()
-        for _, track in ipairs(obj:GetPlayingAnimationTracks()) do
+        for _, track in ipairs(
+            animator:GetPlayingAnimationTracks()
+        ) do
             track:Stop(0)
         end
     end)
 end
 
--- Scan efek aura yang sudah ada
-for _, obj in ipairs(Workspace:GetDescendants()) do
+local function processObject(obj)
+    if _G.PINN_V11_STOP then
+        return
+    end
+
     removeAuraEffects(obj)
-    stopCarpetBrainrotAnimation(obj)
+
+    if obj:IsA("Animator") then
+        stopCarpetBrainrotAnimation(obj)
+    end
 end
 
--- Matikan efek aura yang muncul kemudian
+-- SCAN OBJEK YANG SUDAH ADA
+for _, obj in ipairs(Workspace:GetDescendants()) do
+    processObject(obj)
+end
+
+-- PROSES OBJEK BARU SAAT SPAWN
+if _G.PINN_AURA_CONNECTION then
+    _G.PINN_AURA_CONNECTION:Disconnect()
+end
+
 _G.PINN_AURA_CONNECTION =
     Workspace.DescendantAdded:Connect(function(obj)
         task.defer(function()
-            if _G.PINN_V11_STOP or not obj.Parent then
-                return
-            end
-
-            removeAuraEffects(obj)
-            stopCarpetBrainrotAnimation(obj)
+            processObject(obj)
         end)
     end)
 
--- Pantau animasi brainrot di karpet
+-- PANTAU ANIMASI YANG DIMULAI ULANG
+if _G.PINN_CARPET_ANIMATION_CONNECTION then
+    _G.PINN_CARPET_ANIMATION_CONNECTION:Disconnect()
+end
+
 _G.PINN_CARPET_ANIMATION_CONNECTION =
-    Workspace.DescendantAdded:Connect(function(obj)
-        if obj:IsA("Animator") then
-            task.defer(function()
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if _G.PINN_V11_STOP then
+            return
+        end
+
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Animator") then
                 stopCarpetBrainrotAnimation(obj)
-            end)
+            end
         end
     end)
+
+print("PINN: Carpet animation + aura optimizer aktif")
